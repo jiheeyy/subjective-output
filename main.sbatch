@@ -16,6 +16,7 @@ source /opt/conda/etc/profile.d/conda.sh
 conda activate disc
 
 cd /home/jiheeyou/subjective-output
-python main.py --directory $1
+python main.py --directory rafdb_15k/DATASET/train/6
+python main.py --directory rafdb_15k/DATASET/train/7
 #test_set
 #rafdb_15k/DATASET/test/1
