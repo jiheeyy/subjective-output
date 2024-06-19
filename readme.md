@@ -21,7 +21,7 @@
     Contains .err and .out files from cluster batch submissions
 * rafdb_15k
     Contains publicly available version of RAF-DB dataset. While the original RAF-DB dataset contained about 30k images, POSTERV2 used the 15k version instead for benchmarking. Therefore, I downloaded the 15k version from Kaggle to use for our project as well.
-* product
+* rafdb_product
     Contains products from main.py on RAF-DB dataset. You are good to create your own using main.sbatch and main.py, but you are also free to use the dataframes I've already created.
 * test_set
     Contains test set images from One Million Impressions dataset (the same ~400 images Alfred uses for testing)
