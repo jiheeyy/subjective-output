@@ -134,6 +134,9 @@ path = 'product/'+os.path.join(img_dir, args.directory).replace('/','_')+'.csv'
 feat_df.to_csv(path)
 print(f"fail_count {fail_count}, success_count{len(feat_df)}")
 
+"""Previous version of code used keypoint.py, color.py, texture.py to create feature dataframes.
+Such code is slightly outdated."""
+
 # def coord_col(input_img):
 #     coord_df = keypoint.get_keypoint(input_img)
 #     num_coords = len(coord_df)
