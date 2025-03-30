@@ -21,7 +21,7 @@ echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "My SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 
 job_id=$SLURM_ARRAY_JOB_ID
-# source /home/jiheeyou/miniforge3/etc/profile.d/conda.sh
+source /opt/conda/etc/profile.d/conda.sh
 conda activate disc
 
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
