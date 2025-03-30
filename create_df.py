@@ -130,6 +130,8 @@ emd_values0 = []
 emd_values1 = []
 lasso_emd_values = []
 lasso_acc_values = []
+shap_metrics = pd.DataFrame()
+lasso_metrics = []
 
 for fa in finished_attributes:
     if mode =="trash_nottrash": #nottrash is resnet weights frozen + trainable linear layer
@@ -148,8 +150,24 @@ for fa in finished_attributes:
     with open(directory2, 'rb') as f:
         shap_values2 = pickle.load(f)
     
+    flattened_shapvalue_img0_model1 = np.array(shap_values1[0].values).flatten()
+    flattened_shapvalue_img1_model1 = np.array(shap_values1[1].values).flatten()
+    flattened_shapvalue_img0_model2 = np.array(shap_values2[0].values).flatten()
+    flattened_shapvalue_img1_model2 = np.array(shap_values2[1].values).flatten()
+    spearman_img0 = stats.spearmanr(flattened_shapvalue_img0_model1, flattened_shapvalue_img0_model2)
+    spearman_img1 = stats.spearmanr(flattened_shapvalue_img1_model1, flattened_shapvalue_img1_model2)
+    pearson_img0 = stats.pearsonr(flattened_shapvalue_img0_model1, flattened_shapvalue_img0_model2)
+    pearson_img1 = stats.pearsonr(flattened_shapvalue_img1_model1, flattened_shapvalue_img1_model2)
+    euc_img0 = np.linalg.norm(flattened_shapvalue_img0_model1 - flattened_shapvalue_img0_model2)
+    euc_img1 = np.linalg.norm(flattened_shapvalue_img1_model1 - flattened_shapvalue_img1_model2)
+
+    plt.figure()
+    
+    shap_metric = np.array([spearman_img0.statistic, spearman_img1.statistic, pearson_img0.statistic, pearson_img1.statistic, 
+    spearman_img0.pvalue, spearman_img1.pvalue, pearson_img0.pvalue, pearson_img1.pvalue, euc_img0, euc_img1])
+
     fa_emd0 = shap_emd(shap_values1[0].values,
-                     shap_values2[0].values)
+                     shap_values2[0].values) # Model 1, Model 2 weights on the same image 0
     fa_emd1 = shap_emd(shap_values1[1].values,
                      shap_values2[1].values)
 
@@ -157,6 +175,11 @@ for fa in finished_attributes:
     attributes.append(fa)
     emd_values0.append(fa_emd0)
     emd_values1.append(fa_emd1)
+    shap_metric = shap_metric.reshape(1, -1)
+    if shap_metrics.empty:
+        shap_metrics = pd.DataFrame(shap_metric)
+    else:
+        shap_metrics = pd.concat([shap_metrics, pd.DataFrame(shap_metric)])
 
     train_x = pd.read_csv('alfred/alfred_train.csv')
     test_x = pd.read_csv('alfred/alfred_test.csv')
@@ -166,25 +189,44 @@ for fa in finished_attributes:
     lasso_emd_values.append(lasso_emd(lasso_coef))
     lasso_acc_values.append(lasso_acc)
 
+    flat_coef = np.array(lasso_coef).flatten()
+    flat_meancoef = np.full(flat_coef.shape, lasso_coef.mean())
+    # spearman_lasso = stats.spearmanr(flat_coef, flat_meancoef)
+    euc_lasso = np.linalg.norm(flat_coef - flat_meancoef)
+    lasso_metric = euc_lasso
+    lasso_metrics.append(lasso_metric)
+
 # Create DataFrame
 emd_df = pd.DataFrame({
     'Attribute': attributes,
     'EMD Img 0': emd_values0,
     'EMD Img 1': emd_values1,
     'Lasso_EMD': lasso_emd_values,
-    'Lasso MSE': lasso_acc_values
+    'Lasso MSE': lasso_acc_values,
+    'Shap Spearman Img 0': shap_metrics.iloc[:,0],
+    'Shap Spearman Img 1': shap_metrics.iloc[:,1],
+    'Shap Pearson Img 0': shap_metrics.iloc[:,2],
+    'Shap Pearson Img 1': shap_metrics.iloc[:,3],
+    'Shap Spearman Pvalue Img 0': shap_metrics.iloc[:,4],
+    'Shap Spearman Pvalue Img 1': shap_metrics.iloc[:,5],
+    'Shap Pearson Pvalue Img 0': shap_metrics.iloc[:,6],
+    'Shap Pearson Pvalue Img 1': shap_metrics.iloc[:,7],
+    'Shap Euclidean Img 0': shap_metrics.iloc[:,8],
+    'Shap Euclidean Img 1': shap_metrics.iloc[:,9],
+    'Lasso Euclidean': lasso_metrics,
 })
 
-if mode == 'init_nottrash':
-    final_df = pd.concat([emd_df, trashfalse_df[['average_mse']]], axis=1)
-    final_df = final_df.rename(columns={'average_mse': "Frozen Resnet + Linear Avg MSE"})
-    final_df = pd.concat([final_df, trashfalse_df[['average_mse']] / initial_df[['average_mse']] * 100], axis=1)
-elif mode == 'init_transfer':
-    final_df = pd.concat([emd_df, transfer_df[['average_mse']]], axis=1)
-    final_df = final_df.rename(columns={'average_mse': "Transfer Avg MSE"})
-    final_df = pd.concat([final_df, transfer_df[['average_mse']] / initial_df[['average_mse']] * 100], axis=1)
-else:
-    print("final_df not created")
-final_df = final_df.rename(columns={'average_mse': "All Test Images - MSE Ratio in %"})
+# if mode == 'init_nottrash':
+#     final_df = pd.concat([emd_df, trashfalse_df[['average_mse']]], axis=1)
+#     final_df = final_df.rename(columns={'average_mse': "Frozen Resnet + Linear Avg MSE"})
+#     final_df = pd.concat([final_df, trashfalse_df[['average_mse']] / initial_df[['average_mse']] * 100], axis=1)
+# elif mode == 'init_transfer':
+#     final_df = pd.concat([emd_df, transfer_df[['average_mse']]], axis=1)
+#     final_df = final_df.rename(columns={'average_mse': "Transfer Avg MSE"})
+#     final_df = pd.concat([final_df, transfer_df[['average_mse']] / initial_df[['average_mse']] * 100], axis=1)
+# else:
+#     print("final_df not created")
+# final_df = final_df.rename(columns={'average_mse': "All Test Images - MSE Ratio in %"})
+final_df = emd_df.copy()
 final_df.loc[:, final_df.columns != "attribute"] = final_df.loc[:, final_df.columns != "attribute"].round(5)
-final_df.to_csv(f'performance/test/{mode}.csv', index=False)
+final_df.to_csv(f'performance/test/marc_{mode}.csv', index=False)

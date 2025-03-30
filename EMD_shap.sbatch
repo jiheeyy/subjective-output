@@ -4,7 +4,7 @@
 #SBATCH --output=logs/array_%A_%a.out
 #SBATCH --error=logs/array_%A_%a.err
 #SBATCH --array=1-1
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --constraint=a100
 #SBATCH --partition=general
 #SBATCH --nodes=1
@@ -21,11 +21,11 @@ echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "My SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 
 job_id=$SLURM_ARRAY_JOB_ID
-source /home/jiheeyou/miniforge3/etc/profile.d/conda.sh
+# source /home/jiheeyou/miniforge3/etc/profile.d/conda.sh
 conda activate disc
 
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
 
 cd /home/jiheeyou/subjective-output
-python EMD_shap.py --column $2 --transform resnet --seed 0 --max_evals 50176 --nimg 2 --var $1
+python EMD_shap.py --var $1 --column $2

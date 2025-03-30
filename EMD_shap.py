@@ -28,7 +28,7 @@ argparser.add_argument('--column', type=str, default='happy')
 argparser.add_argument('--transform', type=str, default='resnet')
 argparser.add_argument('--seed', type=int, default=0)
 argparser.add_argument('--max_evals', type=int, default=50176) # 224 * 224
-argparser.add_argument('--nimg', type=int, default=1) # Number of images to evaluate
+argparser.add_argument('--nimg', type=int, default=50) # Number of images to evaluate
 argparser.add_argument('--var', type=str, default="none", help="all50, frozen+regressor, transfer, initial")
 args = argparser.parse_args()
 
@@ -101,6 +101,7 @@ class OMI_Dataset(Dataset):
     
     def __getitem__(self, idx):
         image_name = self.image_files[idx]
+        print("Image name is: ", image_name)
         image_path = os.path.join(self.folder_path, image_name)
         
         # Load and transform image
@@ -155,36 +156,40 @@ for test_images, test_labels in test_dataloader:
     test_images = test_images.permute(0, 2, 3, 1) # SHAP expects (N, H, W, C)
 
     # Create a blur masker
-    masker_blur = shap.maskers.Image("blur(128,128)", test_images[0].shape)
+    masker_blur = shap.maskers.Image("blur(32,32)", test_images[0].shape)
 
     # Create SHAP explainer
     explainer = shap.Explainer(f, masker_blur)
 
     # Explain a subset of the test data
     # SHAP expects numpy array
-    images_to_explain = test_images[:nimg].numpy()
-    labels_to_explain = test_labels[:nimg]
+
+    sample_idx = np.random.choice(len(test_labels), size=nimg, replace=False)
+    images_to_explain = test_images[sample_idx].numpy()
+    labels_to_explain = test_labels[sample_idx]
 
     # Compute SHAP values
     shap_values = explainer(images_to_explain, max_evals=max_evals, batch_size=8)
     print("Time to compute SHAP values:", time.time() - start_time)
-    break # since I'm calculating for only 2 images right now
 
 # Save the SHAP values
 if var == 'transfer' or var == 'initial':
-    with open(f'shap_dict/{var}/{column}_nimg{nimg}.pkl', 'wb') as f:
+    # sample_idx.sum() just to ensure same sample_idx for all runs
+    with open(f'shap_dict/50forpaper/{var}/{column}_sum{sample_idx.sum()}.pkl', 'wb') as f:
         pickle.dump(shap_values, f)
     for i in range(nimg):
         shap.image_plot(shap_values[i])
-        plt.savefig(f'shap_dict/{var}/{column}_whichimg{i}.png')
+        plt.savefig(f'shap_dict/{var}/{column}_sample_idx{sample_idx[i]}.png')
 
 else:
-    with open(f'shap_dict/{var}/{column}_nimg{nimg}.pkl', 'wb') as f:
+    # Remember sample_idx is different from image name
+    with open(f'shap_dict/50forpaper/{var}/{column}_sum{sample_idx.sum()}.pkl', 'wb') as f:
         pickle.dump(shap_values, f)
     for i in range(nimg):
         shap.image_plot(shap_values[i])
-        plt.savefig(f'shap_dict/{var}/{column}_whichimg{i}.png')
+        plt.savefig(f'shap_dict/{var}/{column}_sample_idx{sample_idx[i]}.png')
 
 # Load the SHAP values
+# Instead of _nimg{nimg} _{sample_idx}
 # with open(f'shap_dict/{column}_seed{seed}_nimg{nimg}.pkl', 'rb') as f:
 #     loaded_shap_values = pickle.load(f)
